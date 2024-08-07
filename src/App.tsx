@@ -1,12 +1,5 @@
+
 import './App.css'
+import { Providers } from '@_providers/Providers'
 
-function App() {
-
-  return (
-    <>
-      <h1 className="font-bold text-red-500">Flowerstore Personalized App</h1>
-    </>
-  )
-}
-
-export default App
+export default Providers
