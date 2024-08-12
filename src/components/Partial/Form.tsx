@@ -1,11 +1,17 @@
 import { Controller, useForm } from "react-hook-form";
 import { PersonalizedInterface } from "@_src/types/interface";
-
+import { useState } from "react";
+import { toast } from "react-toastify"
+import axios from 'axios'
 export const Form = () => {
 
+  const [ selectedImage, setSelectedImage ] = useState<any>()
+  const [ errorList, setErrorList ] = useState<string[]>()
   const {
     handleSubmit,
     control,
+    setValue,
+    watch,
     formState : { errors }
   } = useForm<PersonalizedInterface>({
     defaultValues: {
@@ -16,8 +22,48 @@ export const Form = () => {
     },
   });
 
-  const onSubmit = (data: PersonalizedInterface): void => {
-    console.log(data)
+  const validateFileType = (file: FileList | undefined) => {
+    if(file) {
+      const filetype = file[0].type.split("/")
+      if(filetype[filetype.length - 1].toLowerCase() === 'webp') {
+        return true
+      }
+      return false
+    }
+  }
+
+  const resetForm = ():void => {
+    setValue("orderNumber", '')
+    setValue("item", '')
+    setValue("text", '')
+    setValue("image", null)
+
+  }
+
+  const onSubmit = async (data: PersonalizedInterface) => {
+
+    const { orderNumber, item, text, image } = data 
+    if(image && validateFileType(image) == false) { return toast("type of your file must be in webp format", { type: "warning" }) }
+    let config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    } 
+
+    let formdata = new FormData()
+    formdata.append('order_name', orderNumber)
+    formdata.append('item', item)
+    formdata.append('text', text)
+    image && formdata.append('media', image[0], image[0].name)
+    
+    const result = await axios.post('https://devapi.flowerstore.ph/v2/personalized-order/store', formdata, config).then(res => {
+      res && toast(res.data.message, { type: "success" })
+      resetForm()
+      return res.data
+    }).catch(err => {
+        setErrorList(err.response.data.message)
+    })
+    return result
   }
 
 
@@ -45,6 +91,15 @@ export const Form = () => {
               name="orderNumber"
             />
           { errors.orderNumber && <p className="text-red-400 indent-2 text-sm">order number is invalid*</p> }
+          { errorList?.length && (
+            errorList.map((message, index) => {
+              return (
+                <p key={index} className="text-red-400 indent-2 text-sm">
+                  {message}
+                </p>
+              )
+            })
+          )}
         </div>
 
         <div className="md:col-span-5">
@@ -103,11 +158,16 @@ export const Form = () => {
               defaultValue={null}
               render={({ field: { onChange, onBlur, ref } }) => (
                 <input
+                  className="form-control"
+                  accept="image"
                   onBlur={onBlur}
                   ref={ref}
                   type="file"
                   onChange={(e) => {
-                    onChange(e.target.files)
+                    if(e.target.files && e.target.files.length > 0) {
+                      onChange(e.target.files)
+                      setSelectedImage(e.target.files[0])
+                    }
                   }}
               />
               )}
@@ -115,7 +175,16 @@ export const Form = () => {
             />
           { errors.image && <p className="text-red-400 indent-2 text-sm">image is invalid*</p> }
         </div>
-
+        
+        {selectedImage && watch("image") && (
+          <div className="mt-2 flex flex-col">
+            <img
+              className="max-w-[100%] max-h-[320]" 
+              src={URL.createObjectURL(selectedImage)}
+              alt="Thumb"
+            />
+          </div>
+        )}
 
         <div className="md:col-span-5 text-right mt-3">
           <div className="inline-flex items-end">
