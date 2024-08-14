@@ -2,8 +2,8 @@ import { Controller, useForm } from "react-hook-form";
 import { PersonalizedInterface } from "@_src/types/interface";
 import { useState } from "react";
 import { toast } from "react-toastify"
-import axios from 'axios'
 import imageCompression from 'browser-image-compression';
+import { apiClient } from "@_src/http-commons";
 
 export const Form = () => {
 
@@ -52,7 +52,6 @@ export const Form = () => {
   }
 
 
-
   const onSubmit = async (data: PersonalizedInterface) => {
     const { orderNumber, item, text, image } = data 
     const convertedImage:any =  await fileConvert(image)
@@ -70,7 +69,7 @@ export const Form = () => {
     formdata.append('text', text)
     image && formdata.append('media', convertedImage, convertedImage?.name)
     
-    const result = await axios.post('https://devapi.flowerstore.ph/v2/personalized-order/store', formdata, config).then(res => {
+    const result = await apiClient?.post('/personalized-order/store', formdata, config).then(res => {
       res && toast(res.data.message, { type: "success" })
       resetForm()
       return res.data
