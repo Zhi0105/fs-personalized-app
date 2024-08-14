@@ -24,16 +24,6 @@ export const Form = () => {
     },
   });
 
-  const validateFileType = (file: FileList | undefined) => {
-    if(file) {
-      const filetype = file[0].type.split("/")
-      if(filetype[filetype.length - 1].toLowerCase() === 'webp') {
-        return true
-      }
-      return false
-    }
-  }
-
   const resetForm = ():void => {
     setValue("orderNumber", '')
     setValue("item", '')
