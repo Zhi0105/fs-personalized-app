@@ -3,6 +3,8 @@ import { PersonalizedInterface } from "@_src/types/interface";
 import { useState } from "react";
 import { toast } from "react-toastify"
 import axios from 'axios'
+import imageCompression from 'browser-image-compression';
+
 export const Form = () => {
 
   const [ selectedImage, setSelectedImage ] = useState<any>()
@@ -40,10 +42,32 @@ export const Form = () => {
 
   }
 
-  const onSubmit = async (data: PersonalizedInterface) => {
+  const fileConvert = async(image: any) => {
+    if(image) {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+        fileType: 'image/webp'  // This option converts the image to WebP format
+      };
 
+      try {
+        const blob = await imageCompression(image, options);
+        const file = new File([blob], `${blob.name}`, {type: 'image/webp'})
+        return file
+      } catch (error) {
+        console.error('Error converting image to WebP:', error);
+      }
+    }
+  }
+
+
+
+  const onSubmit = async (data: PersonalizedInterface) => {
     const { orderNumber, item, text, image } = data 
-    if(image && validateFileType(image) == false) { return toast("type of your file must be in webp format", { type: "warning" }) }
+    const convertedImage:any =  await fileConvert(image)
+
+    // if(image && validateFileType(image) == false) { return toast("type of your file must be in webp format", { type: "warning" }) }
     let config = {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -54,7 +78,7 @@ export const Form = () => {
     formdata.append('order_name', orderNumber)
     formdata.append('item', item)
     formdata.append('text', text)
-    image && formdata.append('media', image[0], image[0].name)
+    image && formdata.append('media', convertedImage, convertedImage?.name)
     
     const result = await axios.post('https://devapi.flowerstore.ph/v2/personalized-order/store', formdata, config).then(res => {
       res && toast(res.data.message, { type: "success" })
@@ -165,7 +189,7 @@ export const Form = () => {
                   type="file"
                   onChange={(e) => {
                     if(e.target.files && e.target.files.length > 0) {
-                      onChange(e.target.files)
+                      onChange(e.target.files[0])
                       setSelectedImage(e.target.files[0])
                     }
                   }}
